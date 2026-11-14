@@ -60,6 +60,13 @@ function ProfilePageInner() {
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Auto-clear feedback message after 4 seconds
+  useEffect(() => {
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(''), 4000);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
   useEffect(() => {
     async function load() {
       const meRes = await fetch('/api/auth/me');
@@ -203,6 +210,14 @@ function ProfilePageInner() {
 
       {/* Provider profile form */}
       <div className="card">
+        {/* SEEKER role upgrade notice */}
+        {me?.role === 'SEEKER' && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm bn">
+            💡 <strong>এই অংশটি পূরণ করলে আপনি সেবাদাতা হিসেবেও কাজ করতে পারবেন।</strong>
+            <br />
+            <span className="text-xs text-amber-600">Headline ও বিবরণ সংরক্ষণ করলে আপনার একাউন্ট স্বয়ংক্রিয়ভাবে উভয় ভূমিকায় (BOTH) আপগ্রেড হবে।</span>
+          </div>
+        )}
         <h2 className="font-bold text-gray-800 bn mb-4">
           সহায়তাকারী Profile {!profile && <span className="text-sm font-normal text-gray-400">(এখনো তৈরি করা হয়নি)</span>}
         </h2>

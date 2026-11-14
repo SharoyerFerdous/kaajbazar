@@ -21,28 +21,49 @@ interface Props {
 export default function ChatWindow({ appId, title, otherName, compact = false, apiBase = '/api/messages' }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [viewerId, setViewerId] = useState<string | null>(null);
+  const [metaTitle, setMetaTitle] = useState<string | null>(null); // title from API meta
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(!compact);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Track whether at least one successful fetch has completed — avoids stale
+  // closure issues when checking inside the useCallback below.
+  const hasLoadedRef = useRef(false);
 
   // ── Reset when the conversation changes ────────────────────────────────────
   useEffect(() => {
     setMsgs([]);
     setLoading(true);
     setViewerId(null);
+    setMetaTitle(null);
+    setFetchError(null);
+    hasLoadedRef.current = false;
   }, [appId]);
 
   const fetchMsgs = useCallback(async () => {
     try {
       const r = await fetch(`${apiBase}/${appId}`);
-      if (!r.ok) return;
+      if (!r.ok) {
+        // Only show error if we have never successfully loaded — don't overwrite
+        // existing messages on a transient poll failure (hasLoadedRef avoids the
+        // stale-closure problem of reading `loading` inside useCallback).
+        if (!hasLoadedRef.current) {
+          setFetchError(r.status === 403 ? 'এই কথোপকথনে আপনার অ্যাক্সেস নেই।' : 'কথোপকথন পাওয়া যায়নি।');
+          setLoading(false);
+        }
+        return;
+      }
       const d = await r.json();
+      hasLoadedRef.current = true;
       setMsgs(d.messages || []);
       setViewerId(d.meta?.viewer_id || null);
+      // Capture announcement title from meta (used when no title prop is passed)
+      if (d.meta?.announcement_title) setMetaTitle(d.meta.announcement_title);
+      setFetchError(null);
       setLoading(false);
       // Count unread when panel is closed
       if (!open) {
@@ -99,6 +120,10 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
     return d.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
   }
 
+  // Resolved display values — fall back to API meta when props not passed
+  const displayTitle = title || metaTitle || null;
+  const displayOther = otherName || 'অপর পক্ষ';
+
   if (compact) {
     return (
       <div className="fixed bottom-4 right-4 z-50 w-80 shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
@@ -108,7 +133,7 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
           className="w-full flex items-center justify-between px-4 py-3 bg-green-700 text-white font-semibold text-sm bn"
         >
           <span className="flex items-center gap-2">
-            💬 {otherName || 'চ্যাট'}
+            💬 {displayOther}
             {unread > 0 && (
               <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {unread}
@@ -118,7 +143,8 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
           <span>{open ? '▼' : '▲'}</span>
         </button>
         {open && <ChatBody msgs={msgs} viewerId={viewerId} input={input} setInput={setInput}
-          sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading} />}
+          sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading}
+          fetchError={fetchError} />}
       </div>
     );
   }
@@ -131,18 +157,19 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-white font-semibold text-sm bn truncate">
-            {otherName ? `${otherName} এর সাথে চ্যাট` : 'চ্যাট'}
+            {displayOther} এর সাথে চ্যাট
           </div>
-          {title && <div className="text-green-300 text-xs bn truncate">{title}</div>}
+          {displayTitle && <div className="text-green-300 text-xs bn truncate">{displayTitle}</div>}
         </div>
       </div>
       <ChatBody msgs={msgs} viewerId={viewerId} input={input} setInput={setInput}
-        sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading} />
+        sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading}
+        fetchError={fetchError} />
     </div>
   );
 }
 
-function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomRef, loading }: {
+function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomRef, loading, fetchError }: {
   msgs: Msg[];
   viewerId: string | null;
   input: string;
@@ -152,6 +179,7 @@ function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomR
   fmt: (iso: string) => string;
   bottomRef: React.RefObject<HTMLDivElement>;
   loading?: boolean;
+  fetchError?: string | null;
 }) {
   return (
     <div className="bg-white flex flex-col" style={{ height: '420px' }}>
@@ -160,6 +188,11 @@ function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomR
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-300 text-2xl animate-pulse">💬</div>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            <div className="text-red-400 text-3xl">⚠️</div>
+            <p className="text-center text-red-500 text-sm bn px-4">{fetchError}</p>
           </div>
         ) : msgs.length === 0 ? (
           <p className="text-center text-gray-400 text-xs bn mt-8">
@@ -196,15 +229,15 @@ function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomR
       <form onSubmit={send} className="border-t border-gray-100 px-3 py-2 flex gap-2">
         <input
           className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 bn"
-          placeholder="বার্তা লিখুন..."
+          placeholder={fetchError ? 'বার্তা পাঠানো যাচ্ছে না' : 'বার্তা লিখুন...'}
           value={input}
           onChange={e => setInput(e.target.value)}
-          disabled={sending}
+          disabled={sending || !!fetchError}
           maxLength={1000}
         />
         <button
           type="submit"
-          disabled={!input.trim() || sending}
+          disabled={!input.trim() || sending || !!fetchError}
           className="bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white rounded-xl px-4 py-2 text-sm font-semibold transition shrink-0"
         >
           {sending ? '...' : '→'}
