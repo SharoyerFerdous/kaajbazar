@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'অনেক চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।' }, { status: 429 });
   }
 
+  // Allowed skill slugs — must match service_categories slugs
+  const VALID_SKILLS = new Set([
+    'grocery','cooking','cleaning','childcare','tutoring',
+    'electrical','plumbing','medicine','laundry','milk',
+    'eldercare','other',
+  ]);
+
   try {
     const body = await req.json();
     const phone    = String(body.phone    || '').trim();
@@ -20,8 +27,16 @@ export async function POST(req: NextRequest) {
     const role     = String(body.role     || '');
     const location_district = body.location_district ? String(body.location_district).slice(0, 100) : null;
     const location_thana    = body.location_thana    ? String(body.location_thana).slice(0, 100)    : null;
+    const birth_year        = body.birth_year ? parseInt(String(body.birth_year)) : null;
 
-    const birth_year    = body.birth_year ? parseInt(String(body.birth_year)) : null;
+    // Skills: optional array of valid category slugs, max 12
+    const rawSkills: unknown = body.skills;
+    const skills: string[] = Array.isArray(rawSkills)
+      ? rawSkills
+          .map((s) => String(s).toLowerCase().trim())
+          .filter((s) => VALID_SKILLS.has(s))
+          .slice(0, 12)
+      : [];
 
     if (!phone || !name || !password || !role) {
       return NextResponse.json({ error: 'ফোন, নাম, পাসওয়ার্ড ও ভূমিকা আবশ্যক' }, { status: 400 });
@@ -50,10 +65,10 @@ export async function POST(req: NextRequest) {
 
     const password_hash = await hashPassword(password);
     const result = await query<{ id: string; name: string; phone: string; role: string }>(
-      `INSERT INTO users (phone, name, password_hash, role, birth_year, location_district, location_thana)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO users (phone, name, password_hash, role, birth_year, location_district, location_thana, skills)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, name, phone, role`,
-      [phone, name, password_hash, role, birth_year, location_district, location_thana]
+      [phone, name, password_hash, role, birth_year, location_district, location_thana, skills]
     );
 
     const user = result.rows[0];

@@ -57,6 +57,8 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get('category');
   const district = searchParams.get('district');
   const mine = searchParams.get('mine');
+  // skills=grocery,cooking — returns jobs matching ANY of the given slugs
+  const skillsParam = searchParams.get('skills');
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
   const limit = 20;
   const offset = (page - 1) * limit;
@@ -85,6 +87,12 @@ export async function GET(req: NextRequest) {
 
   const conditions = ["a.status = 'open'", 'a.expires_at > NOW()'];
   if (category) { conditions.push(`sc.slug = $${p++}`); params.push(category); }
+  if (skillsParam) {
+    // Accept comma-separated slugs; filter to known valid values
+    const VALID = new Set(['grocery','cooking','cleaning','childcare','tutoring','electrical','plumbing','medicine','laundry','milk','eldercare','other']);
+    const slugs = skillsParam.split(',').map(s => s.trim()).filter(s => VALID.has(s));
+    if (slugs.length > 0) { conditions.push(`sc.slug = ANY($${p++})`); params.push(slugs); }
+  }
   if (district) { conditions.push(`a.location_district ILIKE $${p++}`); params.push(`%${district}%`); }
   params.push(limit, offset);
 

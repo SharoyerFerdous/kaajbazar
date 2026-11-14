@@ -3,6 +3,21 @@ import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+const SKILL_TAGS = [
+  { slug: 'grocery',    icon: '🛒', label: 'বাজার করা' },
+  { slug: 'cooking',    icon: '🍳', label: 'রান্না' },
+  { slug: 'cleaning',   icon: '🧹', label: 'পরিষ্কার' },
+  { slug: 'childcare',  icon: '👶', label: 'শিশু সেবা' },
+  { slug: 'tutoring',   icon: '📚', label: 'পড়ানো / টিউটর' },
+  { slug: 'electrical', icon: '⚡', label: 'বিদ্যুৎ মিস্ত্রি' },
+  { slug: 'plumbing',   icon: '🔧', label: 'পানির মিস্ত্রি' },
+  { slug: 'medicine',   icon: '💊', label: 'ওষুধ আনা' },
+  { slug: 'laundry',    icon: '👕', label: 'লন্ড্রি' },
+  { slug: 'milk',       icon: '🥛', label: 'দুধ / নাস্তা' },
+  { slug: 'eldercare',  icon: '👴', label: 'বৃদ্ধ সঙ্গী' },
+  { slug: 'other',      icon: '🤲', label: 'অন্যান্য' },
+];
+
 const CATEGORIES = [
   { slug: 'grocery', icon: '🛒', bn: 'বাজার করা' },
   { slug: 'milk', icon: '🥛', bn: 'দুধ / নাস্তা' },
@@ -37,6 +52,8 @@ function ProfilePageInner() {
   const [nidStatus, setNidStatus] = useState('none');
   const [profileForm, setProfileForm] = useState({ headline: '', bio: '' });
   const [svcForm, setSvcForm] = useState({ category_slug: '', title: '', description: '', hourly_rate_bdt: '', fixed_rate_bdt: '' });
+  const [skills, setSkills] = useState<string[]>([]);
+  const [savingSkills, setSavingSkills] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addingSvc, setAddingSvc] = useState(false);
   const [uploadingNid, setUploadingNid] = useState(false);
@@ -49,6 +66,7 @@ function ProfilePageInner() {
       if (!meRes.ok) { router.push('/login'); return; }
       const meData = await meRes.json();
       setMe(meData.user);
+      setSkills(meData.user?.skills ?? []);
 
       const [pRes, sRes, nRes] = await Promise.all([
         fetch('/api/providers/profile'),
@@ -68,6 +86,29 @@ function ProfilePageInner() {
     }
     load();
   }, [router]);
+
+  function toggleSkill(slug: string) {
+    setSkills(prev =>
+      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
+    );
+  }
+
+  async function saveSkills() {
+    setSavingSkills(true);
+    const res = await fetch('/api/providers/skills', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skills }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setSkills(d.skills);
+      setFeedback('✅ দক্ষতা সংরক্ষিত হয়েছে');
+    } else {
+      setFeedback(d.error || 'সমস্যা হয়েছে।');
+    }
+    setSavingSkills(false);
+  }
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
@@ -207,6 +248,53 @@ function ProfilePageInner() {
           </label>
         )}
       </div>
+
+      {/* ── Skill Tags ── */}
+      {me && (me.role === 'PROVIDER' || me.role === 'BOTH') && (
+        <div className="card">
+          <h2 className="font-bold text-gray-800 bn mb-1">আমার দক্ষতা / Skill Tags</h2>
+          <p className="text-xs text-gray-400 bn mb-4">
+            এই তথ্য আপনাকে প্রাসঙ্গিক কাজের সাথে মিলিয়ে দেবে। পরে যেকোনো সময় পরিবর্তন করা যাবে।
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {SKILL_TAGS.map((tag) => {
+              const selected = skills.includes(tag.slug);
+              return (
+                <button
+                  key={tag.slug}
+                  type="button"
+                  onClick={() => toggleSkill(tag.slug)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all bn ${
+                    selected
+                      ? 'bg-green-600 border-green-600 text-white shadow-sm'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-700'
+                  }`}
+                >
+                  <span>{tag.icon}</span>
+                  {tag.label}
+                  {selected && <span className="ml-0.5 text-green-200 text-xs">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {skills.length > 0 && (
+            <p className="text-xs text-green-700 font-semibold bn mb-3">
+              {skills.length}টি দক্ষতা নির্বাচিত
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={saveSkills}
+            disabled={savingSkills}
+            className="btn-primary py-2 bn"
+          >
+            {savingSkills ? 'সংরক্ষণ হচ্ছে...' : 'দক্ষতা সংরক্ষণ করুন'}
+          </button>
+        </div>
+      )}
 
       {/* Services */}
       {profile && (

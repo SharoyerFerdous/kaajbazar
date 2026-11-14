@@ -9,6 +9,21 @@ const ROLES = [
   { value: 'BOTH',     label: 'উভয়ই',                  desc: 'একই account-এ দুটোই করব', icon: '🤝' },
 ];
 
+const SKILL_TAGS = [
+  { slug: 'grocery',    icon: '🛒', label: 'বাজার করা' },
+  { slug: 'cooking',    icon: '🍳', label: 'রান্না' },
+  { slug: 'cleaning',   icon: '🧹', label: 'পরিষ্কার' },
+  { slug: 'childcare',  icon: '👶', label: 'শিশু সেবা' },
+  { slug: 'tutoring',   icon: '📚', label: 'পড়ানো / টিউটর' },
+  { slug: 'electrical', icon: '⚡', label: 'বিদ্যুৎ মিস্ত্রি' },
+  { slug: 'plumbing',   icon: '🔧', label: 'পানির মিস্ত্রি' },
+  { slug: 'medicine',   icon: '💊', label: 'ওষুধ আনা' },
+  { slug: 'laundry',    icon: '👕', label: 'লন্ড্রি' },
+  { slug: 'milk',       icon: '🥛', label: 'দুধ / নাস্তা' },
+  { slug: 'eldercare',  icon: '👴', label: 'বৃদ্ধ সঙ্গী' },
+  { slug: 'other',      icon: '🤲', label: 'অন্যান্য' },
+];
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,8 +34,15 @@ function RegisterForm() {
     location_district: '', location_thana: '',
     birth_year: '',
   });
+  const [skills, setSkills] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  function toggleSkill(slug: string) {
+    setSkills(prev =>
+      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
+    );
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,7 +52,7 @@ function RegisterForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, skills }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
@@ -106,6 +128,45 @@ function RegisterForm() {
                 value={form.birth_year}
                 onChange={(e) => setForm({ ...form, birth_year: e.target.value })} />
             </div>
+
+            {/* ── Skill tags (providers only) ─────────────────────────────── */}
+            {(form.role === 'PROVIDER' || form.role === 'BOTH') && (
+              <div>
+                <label className="label">
+                  আপনি কোন কাজে দক্ষ?{' '}
+                  <span className="text-gray-400 font-normal">(ঐচ্ছিক — পরে পরিবর্তন করা যাবে)</span>
+                </label>
+                <p className="text-xs text-gray-400 bn mb-3">
+                  যে ধরনের কাজে apply করতে চান সেগুলো বেছে নিন। এটি আপনাকে প্রাসঙ্গিক কাজ খুঁজে পেতে সাহায্য করবে।
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SKILL_TAGS.map((tag) => {
+                    const selected = skills.includes(tag.slug);
+                    return (
+                      <button
+                        key={tag.slug}
+                        type="button"
+                        onClick={() => toggleSkill(tag.slug)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all bn ${
+                          selected
+                            ? 'bg-green-600 border-green-600 text-white shadow-sm'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-700'
+                        }`}
+                      >
+                        <span>{tag.icon}</span>
+                        {tag.label}
+                        {selected && <span className="ml-0.5 text-green-200 text-xs">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {skills.length > 0 && (
+                  <p className="text-xs text-green-700 font-semibold mt-2 bn">
+                    ✓ {skills.length}টি দক্ষতা বেছে নেওয়া হয়েছে
+                  </p>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm bn">

@@ -40,6 +40,7 @@ async function _init() {
         location_district VARCHAR(100),
         location_thana    VARCHAR(100),
         location_area     VARCHAR(255),
+        skills          TEXT[]  DEFAULT '{}',
         is_active       BOOLEAN DEFAULT true,
         created_at      TIMESTAMPTZ DEFAULT NOW(),
         updated_at      TIMESTAMPTZ DEFAULT NOW()
@@ -337,6 +338,12 @@ async function _init() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_direct_messages_conv
         ON direct_messages(conversation_id, created_at)
+    `);
+
+    // ── Schema migrations (ADD COLUMN IF NOT EXISTS is idempotent) ────────────
+    await client.query(`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS skills TEXT[] DEFAULT '{}'
     `);
 
     if (process.env.ADMIN_PHONE) {

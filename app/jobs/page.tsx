@@ -32,11 +32,14 @@ function timeAgo(dateStr: string) {
 }
 
 export default function JobsPage() {
-  const [jobs, setJobs]       = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
-  const [page, setPage]       = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [jobs, setJobs]             = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [category, setCategory]     = useState('');
+  const [page, setPage]             = useState(1);
+  const [hasMore, setHasMore]       = useState(false);
+  // Recommended (skill-matched) jobs
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [userSkills, setUserSkills]   = useState<string[]>([]);
 
   const load = async (cat: string, pg: number, append = false) => {
     setLoading(true);
@@ -50,6 +53,25 @@ export default function JobsPage() {
     }
     setLoading(false);
   };
+
+  // On mount: load main feed + fetch recommended if user has skills
+  useEffect(() => {
+    load(category, 1);
+    (async () => {
+      const meRes = await fetch('/api/auth/me');
+      if (!meRes.ok) return;
+      const { user } = await meRes.json();
+      const skills: string[] = user?.skills ?? [];
+      if (skills.length === 0) return;
+      if (user.role !== 'PROVIDER' && user.role !== 'BOTH') return;
+      setUserSkills(skills);
+      const recRes = await fetch(`/api/announcements?skills=${skills.join(',')}&page=1`);
+      if (recRes.ok) {
+        const recData = await recRes.json();
+        setRecommended(recData.announcements ?? []);
+      }
+    })();
+  }, []); // eslint-disable-line
 
   useEffect(() => { setPage(1); load(category, 1); }, [category]); // eslint-disable-line
 
@@ -140,6 +162,47 @@ export default function JobsPage() {
           </div>
           <span className="text-white/60 text-xl shrink-0">›</span>
         </Link>
+
+        {/* ── Recommended for you ── */}
+        {recommended.length > 0 && !category && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">⭐</span>
+              <h2 className="font-extrabold text-gray-800 bn text-base">আপনার জন্য প্রস্তাবিত কাজ</h2>
+              <span className="text-xs text-gray-400 bn">
+                ({userSkills.map(s => {
+                  const tag = CAT_MAP[s];
+                  return tag ? tag.icon : null;
+                }).filter(Boolean).join(' ')} দক্ষতা অনুযায়ী)
+              </span>
+            </div>
+            <div className="space-y-3">
+              {recommended.slice(0, 5).map((job: any) => {
+                const cat = CAT_MAP[job.category_slug] || {};
+                return (
+                  <Link key={job.id} href={`/announcements/${job.id}`}
+                    className="flex items-start gap-3 bg-white rounded-2xl p-4 border-2 border-green-100 hover:border-green-300 transition-all"
+                    style={{ boxShadow: '0 2px 12px rgba(22,163,74,0.08)' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                      style={{ background: cat.bg || '#f0fdf4' }}>
+                      {job.category_icon || '🤲'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-800 bn text-sm truncate">{job.title}</div>
+                      <div className="text-xs text-gray-400 bn mt-0.5 flex items-center gap-2">
+                        <span>{job.category_bn}</span>
+                        {job.location_thana && <><span>·</span><span>📍 {job.location_thana}</span></>}
+                        {job.budget_max_bdt && <><span>·</span><span className="text-green-700 font-semibold">৳{job.budget_max_bdt}</span></>}
+                      </div>
+                    </div>
+                    <span className="text-gray-300 text-lg shrink-0">›</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="border-b border-gray-200 mt-6 mb-2" />
+          </div>
+        )}
 
         {/* Active filter label */}
         {category && (

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
   const result = await query(
-    'SELECT id, phone, email, name, avatar_url, role, location_district, location_thana, location_area FROM users WHERE id = $1',
+    'SELECT id, phone, email, name, avatar_url, role, location_district, location_thana, location_area, skills FROM users WHERE id = $1',
     [payload.id]
   );
   if (!result.rows[0]) return NextResponse.json({ error: 'User not found' }, { status: 404 });
