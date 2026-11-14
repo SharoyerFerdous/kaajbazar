@@ -5,25 +5,23 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import ChatWindow from '@/components/ChatWindow';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ThreadKind = 'broadcast' | 'direct' | 'application';
 
 interface Thread {
-  id: string;           // broadcastId | convId | appId
+  id: string;
   kind: ThreadKind;
-  icon: string;
-  label: string;        // other person's name or "KAAJBazar"
-  subtitle: string;     // job title or broadcast target
+  label: string;
+  subtitle: string;
   lastMessage: string | null;
   lastAt: string | null;
   unread: number;
-  // broadcast-specific
   broadcastContent?: string;
   broadcastTitle?: string;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string | null) {
   if (!iso) return '';
@@ -34,16 +32,44 @@ function timeAgo(iso: string | null) {
   return `${Math.floor(diff / 86400)}দিন`;
 }
 
-// ── Main page (inner) ─────────────────────────────────────────────────────────
+// Consistent avatar color from name
+function avatarColor(name: string) {
+  const colors = [
+    'bg-green-500', 'bg-blue-500', 'bg-purple-500',
+    'bg-orange-500', 'bg-pink-500', 'bg-teal-500',
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
+}
+
+function Avatar({ name, isBroadcast }: { name: string; isBroadcast?: boolean }) {
+  if (isBroadcast) {
+    return (
+      <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center shrink-0 text-xl">
+        📢
+      </div>
+    );
+  }
+  const initial = name ? name[0].toUpperCase() : '?';
+  return (
+    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-lg ${avatarColor(name)}`}>
+      {initial}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 function MessagesInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [threads, setThreads]   = useState<Thread[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [active, setActive]     = useState<Thread | null>(null);
-  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [loading, setLoading]  = useState(true);
+  const [active, setActive]    = useState<Thread | null>(null);
+  // Controls mobile view: 'list' shows thread list, 'chat' shows active chat
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   useEffect(() => {
     async function loadAll() {
@@ -54,15 +80,9 @@ function MessagesInner() {
         fetch('/api/dm'),
       ]);
 
-      // Guard: redirect to login if not authenticated (single /me call)
       if (!meRes.ok) { router.push('/login'); return; }
 
       const all: Thread[] = [];
-
-      if (meRes.ok) {
-        const d = await meRes.json();
-        setViewerId(d.user?.id ?? null);
-      }
 
       // 1. Broadcasts (pinned at top)
       if (bcastRes.ok) {
@@ -71,9 +91,8 @@ function MessagesInner() {
           all.push({
             id: b.id,
             kind: 'broadcast',
-            icon: '📢',
             label: 'KAAJBazar',
-            subtitle: b.target === 'ALL' ? 'সকল সদস্য' : b.target === 'SEEKER' ? 'Seekers' : 'Providers',
+            subtitle: 'ঘোষণা',
             lastMessage: b.title,
             lastAt: b.created_at,
             unread: b.read_at ? 0 : 1,
@@ -90,7 +109,6 @@ function MessagesInner() {
           all.push({
             id: c.id,
             kind: 'direct',
-            icon: '👤',
             label: c.otherName,
             subtitle: 'সরাসরি বার্তা',
             lastMessage: c.lastMessage,
@@ -107,7 +125,6 @@ function MessagesInner() {
           all.push({
             id: c.appId,
             kind: 'application',
-            icon: c.icon || '💬',
             label: c.otherName,
             subtitle: c.title,
             lastMessage: c.lastMessage,
@@ -117,7 +134,7 @@ function MessagesInner() {
         }
       }
 
-      // Sort by most recent, but keep broadcasts at top
+      // Sort: broadcasts first, then by recency
       all.sort((a, b) => {
         if (a.kind === 'broadcast' && b.kind !== 'broadcast') return -1;
         if (b.kind === 'broadcast' && a.kind !== 'broadcast') return 1;
@@ -133,7 +150,7 @@ function MessagesInner() {
       const dmParam = searchParams.get('dm');
       if (dmParam) {
         const found = all.find(t => t.id === dmParam);
-        if (found) setActive(found);
+        if (found) { setActive(found); setMobileView('chat'); }
       }
     }
 
@@ -146,150 +163,192 @@ function MessagesInner() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ broadcastId: id }),
     });
-    setThreads(prev => prev.map(t =>
-      t.id === id ? { ...t, unread: 0 } : t
-    ));
+    setThreads(prev => prev.map(t => t.id === id ? { ...t, unread: 0 } : t));
   }
 
   function selectThread(t: Thread) {
     setActive(t);
+    setMobileView('chat');
     if (t.kind === 'broadcast' && t.unread > 0) markBroadcastRead(t.id);
   }
 
-  if (loading) return <div className="text-center py-16 text-gray-400 bn">লোড হচ্ছে...</div>;
+  function goBack() {
+    setMobileView('list');
+    setActive(null);
+  }
 
   const totalUnread = threads.reduce((s, t) => s + t.unread, 0);
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-extrabold text-gray-900 bn">
-          💬 বার্তা
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-400 bn text-sm">লোড হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+  if (threads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+        <div className="text-7xl mb-5">💬</div>
+        <h2 className="text-xl font-bold text-gray-800 bn mb-2">কোনো বার্তা নেই</h2>
+        <p className="text-gray-400 bn text-sm leading-relaxed mb-8">
+          কোনো সহায়তাকারীকে মেসেজ করুন অথবা কোনো কাজে apply করলে এখানে দেখাবে।
+        </p>
+        <Link href="/browse"
+          className="bg-green-600 text-white font-bold bn px-8 py-3 rounded-2xl text-base">
+          সহায়তাকারী খুঁজুন
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Thread list (always rendered; hidden on mobile when chat is open) ───────
+  const threadList = (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-4 pt-5 pb-3 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-extrabold text-gray-900 bn flex-1">বার্তা</h1>
           {totalUnread > 0 && (
-            <span className="ml-2 text-sm bg-green-600 text-white font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
               {totalUnread}
             </span>
           )}
-        </h1>
+        </div>
       </div>
 
-      {threads.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-6xl mb-4">💬</div>
-          <p className="text-gray-600 font-semibold bn text-lg">কোনো বার্তা নেই</p>
-          <p className="text-gray-400 text-sm bn mt-1">
-            কোনো কাজে apply করলে বা কাউকে সরাসরি মেসেজ করলে এখানে দেখাবে।
-          </p>
-          <Link href="/browse"
-            className="mt-5 inline-block px-6 py-3 rounded-2xl bg-gray-900 text-white font-bold text-sm bn">
-            সহায়তাকারী খুঁজুন →
-          </Link>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-5 gap-4">
+      {/* List */}
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+        {threads.map(t => {
+          const isActive = active?.id === t.id;
+          return (
+            <button
+              key={t.id + t.kind}
+              onClick={() => selectThread(t)}
+              className={`w-full text-left flex items-center gap-3 px-4 py-3 transition active:bg-gray-50 ${
+                isActive ? 'bg-green-50' : 'bg-white hover:bg-gray-50'
+              }`}
+            >
+              <Avatar name={t.label} isBroadcast={t.kind === 'broadcast'} />
 
-          {/* ── Thread list ── */}
-          <div className="sm:col-span-2 space-y-1.5">
-            {threads.map(t => {
-              const isActive = active?.id === t.id;
-              return (
-                <button key={t.id + t.kind} onClick={() => selectThread(t)}
-                  className={`w-full text-left flex items-center gap-3 p-3.5 rounded-2xl border transition ${
-                    isActive
-                      ? 'border-green-400 bg-green-50'
-                      : t.kind === 'broadcast'
-                        ? 'border-amber-200 bg-amber-50 hover:border-amber-300'
-                        : 'border-gray-100 bg-white hover:border-green-200'
-                  }`}>
-                  {/* Icon */}
-                  <div className={`text-2xl shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                    t.kind === 'broadcast' ? 'bg-amber-100' : 'bg-gray-100'
-                  }`}>
-                    {t.icon}
-                  </div>
-
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-semibold text-gray-900 bn text-sm truncate">{t.label}</span>
-                      <span className="text-xs text-gray-400 shrink-0 bn">{timeAgo(t.lastAt)}</span>
-                    </div>
-                    {/* Announcement topic — only show for application threads */}
-                    {t.kind === 'application' && t.subtitle && (
-                      <div className="text-xs text-green-700 bn truncate mt-0.5 font-medium">
-                        📋 {t.subtitle}
-                      </div>
-                    )}
-                    {/* Last message preview */}
-                    <div className={`text-xs mt-0.5 truncate ${t.unread > 0 ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                      {t.lastMessage || (t.kind === 'application' ? '📝 Apply করেছে' : t.subtitle || '')}
-                    </div>
-                  </div>
-
-                  {/* Unread badge */}
-                  {t.unread > 0 && (
-                    <span className={`text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0 ${
-                      t.kind === 'broadcast' ? 'bg-amber-500' : 'bg-green-600'
-                    }`}>
-                      {t.unread > 9 ? '9+' : t.unread}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── Active thread panel ── */}
-          <div className="sm:col-span-3 sm:sticky sm:top-20">
-            {!active ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-300 rounded-2xl border border-gray-100 bg-white">
-                <div className="text-5xl mb-3">💬</div>
-                <p className="text-sm bn">একটি কথোপকথন বেছে নিন</p>
-              </div>
-            ) : active.kind === 'broadcast' ? (
-              /* Broadcast detail — read-only */
-              <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
-                <div className="bg-amber-500 px-4 py-3 flex items-center gap-3">
-                  <span className="text-2xl">📢</span>
-                  <div>
-                    <div className="text-white font-bold text-sm bn">{active.broadcastTitle}</div>
-                    <div className="text-amber-100 text-xs bn">KAAJBazar — {active.subtitle}</div>
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className={`text-sm truncate bn ${t.unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'}`}>
+                    {t.label}
+                  </span>
+                  <span className="text-xs text-gray-400 shrink-0 bn">{timeAgo(t.lastAt)}</span>
                 </div>
-                <div className="p-5">
-                  <p className="text-gray-700 bn text-sm leading-relaxed whitespace-pre-wrap">
-                    {active.broadcastContent}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-4 bn">{timeAgo(active.lastAt)} আগে</p>
-                </div>
+
+                {/* Subtitle for application threads */}
+                {t.kind === 'application' && t.subtitle && (
+                  <div className="text-xs text-green-700 bn truncate mb-0.5">
+                    {t.subtitle}
+                  </div>
+                )}
+
+                {/* Last message preview */}
+                <p className={`text-xs truncate bn ${t.unread > 0 ? 'font-semibold text-gray-700' : 'text-gray-400'}`}>
+                  {t.lastMessage || (t.kind === 'application' ? 'আবেদন করা হয়েছে' : t.subtitle)}
+                </p>
               </div>
-            ) : active.kind === 'direct' ? (
-              /* Direct chat */
-              <ChatWindow
-                appId={active.id}
-                apiBase="/api/dm"
-                title="সরাসরি বার্তা"
-                otherName={active.label}
-              />
-            ) : (
-              /* Application chat */
-              <ChatWindow
-                appId={active.id}
-                title={active.subtitle}
-                otherName={active.label}
-              />
-            )}
+
+              {/* Unread dot */}
+              {t.unread > 0 && (
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold ${
+                  t.kind === 'broadcast' ? 'bg-amber-500' : 'bg-green-500'
+                }`}>
+                  {t.unread > 9 ? '9+' : t.unread}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // ── Active chat / broadcast panel ─────────────────────────────────────────
+  const chatPanel = active ? (
+    <div className="flex flex-col h-full">
+      {/* Back header (mobile only — on desktop this is always shown) */}
+      <div className="flex items-center gap-3 px-3 py-3 bg-green-700 shrink-0">
+        <button
+          onClick={goBack}
+          className="text-white p-1.5 rounded-full hover:bg-green-600 transition md:hidden"
+        >
+          ←
+        </button>
+        <Avatar name={active.label} isBroadcast={active.kind === 'broadcast'} />
+        <div className="flex-1 min-w-0">
+          <div className="text-white font-bold text-sm bn truncate">{active.label}</div>
+          <div className="text-green-300 text-xs bn truncate">
+            {active.kind === 'broadcast' ? 'ঘোষণা' :
+             active.kind === 'direct' ? 'সরাসরি বার্তা' : active.subtitle}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {active.kind === 'broadcast' ? (
+          <div className="h-full overflow-y-auto bg-white p-5">
+            <h2 className="font-bold text-gray-900 bn text-base mb-3">{active.broadcastTitle}</h2>
+            <p className="text-gray-700 bn text-sm leading-relaxed whitespace-pre-wrap">
+              {active.broadcastContent}
+            </p>
+            <p className="text-xs text-gray-400 mt-6 bn">{timeAgo(active.lastAt)} আগে</p>
+          </div>
+        ) : active.kind === 'direct' ? (
+          <ChatWindow
+            appId={active.id}
+            apiBase="/api/dm"
+            otherName={active.label}
+          />
+        ) : (
+          <ChatWindow
+            appId={active.id}
+            title={active.subtitle}
+            otherName={active.label}
+          />
+        )}
+      </div>
+    </div>
+  ) : (
+    /* Desktop placeholder when nothing is selected */
+    <div className="hidden md:flex flex-col items-center justify-center h-full text-gray-300 bg-gray-50 rounded-2xl">
+      <div className="text-6xl mb-3">💬</div>
+      <p className="bn text-sm">একটি কথোপকথন বেছে নিন</p>
+    </div>
+  );
+
+  // ── Layout: mobile = one view at a time; desktop = side by side ──────────
+  return (
+    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)]">
+      {/* Mobile: show list OR chat */}
+      <div className="md:hidden h-full">
+        {mobileView === 'list' ? threadList : chatPanel}
+      </div>
+
+      {/* Desktop: side by side */}
+      <div className="hidden md:grid md:grid-cols-5 h-full gap-0 border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <div className="col-span-2 border-r border-gray-100 overflow-hidden">{threadList}</div>
+        <div className="col-span-3 overflow-hidden">{chatPanel}</div>
+      </div>
     </div>
   );
 }
 
-// ── Page wrapper with Suspense (for useSearchParams) ─────────────────────────
+// ── Page wrapper with Suspense ────────────────────────────────────────────────
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="text-center py-16 text-gray-400 bn">লোড হচ্ছে...</div>}>
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-24">
+        <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
       <MessagesInner />
     </Suspense>
   );
