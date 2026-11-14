@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import JobsFeed from '@/components/JobsFeed';
 
 const CATEGORIES = [
@@ -54,7 +55,27 @@ export default function Home() {
           borderRadius: '50%', pointerEvents: 'none',
         }} />
 
-        <div className="max-w-2xl mx-auto px-6 text-center" style={{ position: 'relative' }}>
+        {/* Hero illustration — floats right on desktop */}
+        <div className="hidden md:block" style={{
+          position: 'absolute', right: '0', top: '0', bottom: '0',
+          width: '42%', overflow: 'hidden', pointerEvents: 'none',
+        }}>
+          <Image
+            src="/images/hero.png"
+            alt="Community helper"
+            fill
+            sizes="42vw"
+            style={{ objectFit: 'cover', objectPosition: 'left center', opacity: 0.92 }}
+            priority
+          />
+          {/* Fade left edge so text stays readable */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to right, white 0%, transparent 35%)',
+          }} />
+        </div>
+
+        <div className="max-w-2xl mx-auto px-6 text-center md:text-left md:max-w-none md:px-16 md:w-1/2" style={{ position: 'relative' }}>
 
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 mb-7 px-4 py-1.5 rounded-full bn text-sm font-semibold"
@@ -251,6 +272,18 @@ export default function Home() {
           width: '200px', height: '200px',
           border: '1px solid rgba(255,255,255,0.06)',
           borderRadius: '50%', pointerEvents: 'none',
+        }} />
+
+        {/* Community illustration — subtle right-side texture */}
+        <div style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%',
+          opacity: 0.13,
+          backgroundImage: 'url(/images/community.png)',
+          backgroundSize: 'cover', backgroundPosition: 'center left',
+          maskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
+          borderRadius: '0 1.5rem 1.5rem 0',
+          pointerEvents: 'none',
         }} />
 
         <div style={{ position: 'relative' }}>
