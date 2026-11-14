@@ -174,7 +174,33 @@
 
 /* Smooth fade-in */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-up { animation: fadeUp 0.25s ease both; }
+.fade-up  { animation: fadeUp 0.35s ease both; }
+.fade-up-1 { animation: fadeUp 0.4s 0.08s ease both; opacity: 0; }
+.fade-up-2 { animation: fadeUp 0.4s 0.18s ease both; opacity: 0; }
+.fade-up-3 { animation: fadeUp 0.4s 0.28s ease both; opacity: 0; }
+.fade-up-4 { animation: fadeUp 0.4s 0.38s ease both; opacity: 0; }
+
+/* Pulsing green dot for live feed */
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.45); }
+  50%       { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+}
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  vertical-align: middle;
+  margin-right: 5px;
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+
+/* Scale-in for category cards */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scaleIn 0.3s ease both; }
