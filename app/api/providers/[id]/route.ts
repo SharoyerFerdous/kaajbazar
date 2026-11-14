@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
        CASE WHEN u.birth_year IS NOT NULL THEN (DATE_PART('year', NOW()) - u.birth_year)::int ELSE NULL END AS age
      FROM provider_profiles pp
      JOIN users u ON u.id = pp.user_id
-     WHERE pp.id = $1`,
+     WHERE u.id = $1`,
     [id]
   );
   if (!provResult.rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 });

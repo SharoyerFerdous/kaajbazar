@@ -87,7 +87,11 @@ export default function BrowsePage() {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 pt-8 pb-0">
           <h1 className="text-3xl font-black tracking-tight bn mb-0.5" style={{ letterSpacing: '-0.03em' }}>সহায়তাকারী খুঁজুন</h1>
-          <p className="text-sm bn mb-5" style={{ color: '#9ca3a0' }}>{providers.length > 0 ? `${providers.length} জন` : ''} সহায়তাকারী পাওয়া গেছে</p>
+          <p className="text-sm bn mb-5" style={{ color: '#9ca3a0' }}>
+            {tab === 'providers'
+              ? (providers.length > 0 ? `${providers.length} জন সহায়তাকারী পাওয়া গেছে` : 'সহায়তাকারী খুঁজছি...')
+              : (announcements.length > 0 ? `${announcements.length}টি কাজের অনুরোধ পাওয়া গেছে` : 'কাজের অনুরোধ খুঁজছি...')}
+          </p>
 
           {/* Tabs — pill style */}
           <div className="flex gap-2 mb-5">

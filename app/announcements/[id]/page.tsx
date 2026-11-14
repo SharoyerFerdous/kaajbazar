@@ -204,7 +204,7 @@ export default function AnnouncementPage() {
 
       {/* Map */}
       {ann.location_thana && (
-        <div className="rounded-2xl overflow-hidden mb-5 shadow-sm border border-gray-100" style={{ height: 200 }}>
+        <div className="relative rounded-2xl overflow-hidden mb-5 shadow-sm border border-gray-100" style={{ height: 200 }}>
           <AnnouncementMap thana={ann.location_thana} userCoords={userCoords} jobTitle={ann.title} />
           {distKm != null && (
             <div className="absolute bottom-3 left-3 z-[999] bg-white/95 backdrop-blur rounded-xl px-3 py-1.5 shadow border border-gray-100 text-sm font-bold text-gray-800 bn flex items-center gap-2">
@@ -427,8 +427,9 @@ export default function AnnouncementPage() {
       {!isSeeker && me && ann.status === 'open' && !alreadyApplied && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[1500] bg-white border-t border-gray-100 px-4 py-3 shadow-lg">
           <button onClick={() => document.querySelector('form')?.requestSubmit()}
-            className="w-full py-4 rounded-2xl bg-gray-950 text-white font-black text-lg bn">
-            Apply করুন →
+            disabled={applying}
+            className="w-full py-4 rounded-2xl bg-gray-950 text-white font-black text-lg bn disabled:opacity-60">
+            {applying ? 'পাঠানো হচ্ছে...' : 'Apply করুন →'}
           </button>
         </div>
       )}

@@ -34,7 +34,7 @@ export default function ProviderCard({ p, userDist }: { p: Provider; userDist?: 
   const rating = Number(p.avg_rating || 0);
 
   return (
-    <Link href={`/providers/${p.id}`}
+    <Link href={`/providers/${(p as any).user_id || p.id}`}
       className="bg-white rounded-2xl border border-gray-200/80 hover:shadow-md transition block overflow-hidden"
       style={{ borderLeft: `4px solid ${color}` }}>
       <div className="p-4 flex items-center gap-3">
