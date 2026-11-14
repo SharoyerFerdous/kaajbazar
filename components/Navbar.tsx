@@ -31,35 +31,33 @@ export default function Navbar() {
     router.push('/');
   }
 
-  const navBg = 'bg-white/90 backdrop-blur-xl border-gray-100 shadow-sm';
+  const navBg = 'bg-white/95 backdrop-blur-xl border-gray-200 shadow-sm';
   const logoColor = 'text-gray-950';
-  const subColor  = 'text-gray-400';
-  const linkHover = 'hover:bg-gray-100 text-gray-500 hover:text-gray-900 rounded-full';
+  const linkHover = 'hover:bg-gray-100 text-gray-700 hover:text-gray-950 rounded-xl font-semibold';
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[2000] border-b transition-all duration-300 ${navBg}`}>
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="text-xl">🤝</span>
-          <div className="leading-none">
-            <div className={`font-extrabold text-[15px] tracking-tight ${logoColor}`}>EveryDayHelp</div>
-            <div className={`text-[10px] ${subColor} bn`}>Bangladesh · Global</div>
+        <Link href="/" className="flex items-center gap-3">
+          <span className="text-2xl">🤝</span>
+          <div className="leading-tight">
+            <div className={`font-extrabold text-lg tracking-tight ${logoColor}`}>EveryDayHelp</div>
+            <div className="text-xs text-gray-500 bn font-medium">সহজ সাহায্য, আপনার পাশে</div>
           </div>
         </Link>
 
-        {/* Desktop */}
+        {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-1">
           {[
-            { href: '/browse', label: 'খুঁজুন' },
-            { href: '/jobs',   label: 'কাজের বোর্ড' },
-            { href: '/abroad', label: 'বিদেশ' },
-            { href: '/learn',  label: 'শিখুন' },
-            { href: '/post',   label: 'পোস্ট করুন' },
+            { href: '/browse', label: '🔍 খুঁজুন' },
+            { href: '/jobs',   label: '📋 কাজের বোর্ড' },
+            { href: '/post',   label: '➕ পোস্ট করুন' },
+            { href: '/learn',  label: '📚 শিখুন' },
           ].map(l => (
             <Link key={l.href} href={l.href}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium bn transition-colors ${linkHover}`}>
+              className={`px-4 py-2 rounded-xl text-base bn transition-colors ${linkHover}`}>
               {l.label}
             </Link>
           ))}
@@ -98,64 +96,72 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile toggle */}
+        {/* Mobile toggle — hidden since we have bottom nav */}
         <button
-          className={`sm:hidden p-2 rounded-lg transition-colors ${linkHover}`}
+          className="sm:hidden p-3 rounded-xl transition-colors hover:bg-gray-100"
           onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="মেনু"
         >
-          <span className="text-lg text-gray-800">{menuOpen ? '✕' : '☰'}</span>
+          <span className="text-2xl text-gray-800">{menuOpen ? '✕' : '☰'}</span>
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — only shown when toggled */}
       {menuOpen && (
-        <div className="sm:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 px-6 py-4 space-y-1">
+        <div className="sm:hidden bg-white border-t-2 border-gray-100 px-6 py-4 space-y-1 shadow-lg">
           {[
-            { href: '/browse', label: 'সহায়তাকারী খুঁজুন' },
-            { href: '/jobs',   label: 'কাজের বোর্ড' },
-            { href: '/learn',  label: 'শিখুন' },
-            { href: '/post',   label: 'কাজ পোস্ট করুন' },
+            { href: '/browse',  icon: '🔍', label: 'সহায়তাকারী খুঁজুন' },
+            { href: '/jobs',    icon: '📋', label: 'কাজের বোর্ড' },
+            { href: '/learn',   icon: '📚', label: 'শিখুন' },
+            { href: '/abroad',  icon: '✈️', label: 'বিদেশ সেবা' },
+            { href: '/post',    icon: '➕', label: 'কাজ পোস্ট করুন' },
           ].map(l => (
             <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
-              className="block py-2.5 text-gray-700 font-medium bn text-[15px]">
+              className="flex items-center gap-3 py-3.5 px-2 text-gray-800 font-semibold bn text-lg rounded-xl hover:bg-gray-50 transition-colors">
+              <span className="text-xl">{l.icon}</span>
               {l.label}
             </Link>
           ))}
-          <div className="border-t border-gray-100 pt-3 mt-2">
+          <div className="border-t-2 border-gray-100 pt-3 mt-2 space-y-1">
             {me ? (
               <>
                 <Link href="/messages" onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-between py-2.5 text-gray-700 font-medium text-[15px]">
-                  Messages
+                  className="flex items-center justify-between py-3.5 px-2 text-gray-800 font-semibold text-lg rounded-xl hover:bg-gray-50">
+                  <span className="flex items-center gap-3 bn"><span className="text-xl">💬</span> বার্তা</span>
                   {unread > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
+                    <span className="bg-red-500 text-white text-sm font-bold rounded-full px-2.5 py-0.5">
                       {unread}
                     </span>
                   )}
                 </Link>
                 <Link href="/dashboard" onClick={() => setMenuOpen(false)}
-                  className="block py-2.5 text-gray-700 font-medium text-[15px]">
-                  Dashboard
+                  className="flex items-center gap-3 py-3.5 px-2 text-gray-800 font-semibold text-lg bn rounded-xl hover:bg-gray-50">
+                  <span className="text-xl">👤</span> {me.name}
                 </Link>
                 <button onClick={() => { logout(); setMenuOpen(false); }}
-                  className="block w-full text-left py-2.5 text-red-500 font-medium text-[15px]">
-                  লগআউট
+                  className="flex items-center gap-3 w-full text-left py-3.5 px-2 text-red-600 font-semibold text-lg rounded-xl hover:bg-red-50">
+                  <span className="text-xl">🚪</span> লগআউট
                 </button>
               </>
             ) : (
               <>
                 <Link href="/login" onClick={() => setMenuOpen(false)}
-                  className="block py-2.5 text-gray-700 font-medium text-[15px]">
-                  লগইন
+                  className="flex items-center gap-3 py-3.5 px-2 text-gray-800 font-semibold text-lg bn rounded-xl hover:bg-gray-50">
+                  <span className="text-xl">🔐</span> লগইন
                 </Link>
                 <Link href="/register" onClick={() => setMenuOpen(false)}
-                  className="block mt-2 bg-gray-900 text-white text-center py-3 rounded-xl font-semibold text-[15px]">
+                  className="flex items-center justify-center gap-2 mt-2 bg-green-600 text-white text-center py-4 rounded-2xl font-bold text-lg bn hover:bg-green-700 transition-colors">
                   শুরু করুন →
                 </Link>
               </>
             )}
           </div>
         </div>
+      )}
+    </nav>
+  );
+}
+    </div>
       )}
     </nav>
   );

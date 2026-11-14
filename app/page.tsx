@@ -27,7 +27,7 @@ export default function Home() {
             style={{ fontSize: 'clamp(2.8rem, 7vw, 5rem)', letterSpacing: '-0.04em', color: '#141414' }}>
             সহজ সাহায্য।<br />আপনার পাশে।
           </h1>
-          <p className="bn text-lg mb-10 leading-relaxed" style={{ color: '#9ca3a0' }}>
+          <p className="bn text-xl mb-10 leading-relaxed" style={{ color: '#4b5563' }}>
             রাজশাহী থেকে শুরু — এখন সবখানে। কাজ পোস্ট করুন, কাছের সহায়তাকারী ৩০ মিনিটে সাড়া দেবে।
           </p>
           <div className="flex gap-3 justify-center">
@@ -55,13 +55,13 @@ export default function Home() {
           <p className="bn text-center mb-10 text-sm" style={{ color: '#9ca3a0' }}>
             একটি বেছে নিন — ৩০ সেকেন্ডে পোস্ট হয়ে যাবে
           </p>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {CATEGORIES.map((cat) => (
               <Link key={cat.slug} href={`/post?category=${cat.slug}`}
-                className="rounded-2xl p-3 sm:p-4 text-center font-bold text-xs sm:text-sm bn transition-transform hover:scale-105 active:scale-95"
-                style={{ background: cat.color + '15', color: cat.color }}>
-                <div className="text-2xl mb-1">{cat.icon}</div>
-                {cat.bn}
+                className="rounded-2xl p-4 sm:p-5 text-center font-bold text-sm bn transition-transform hover:scale-105 active:scale-95 min-h-[80px] flex flex-col items-center justify-center gap-1"
+                style={{ background: cat.color + '18', color: cat.color }}>
+                <div className="text-3xl sm:text-4xl">{cat.icon}</div>
+                <span className="text-sm font-bold leading-tight">{cat.bn}</span>
               </Link>
             ))}
           </div>
@@ -115,7 +115,7 @@ export default function Home() {
           style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', letterSpacing: '-0.04em', color: '#fff' }}>
           আজই যোগ দিন।
         </h2>
-        <p className="bn text-base mb-8" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="bn text-lg mb-8" style={{ color: 'rgba(255,255,255,0.75)' }}>
           Seeker বা Provider — দুই ভূমিকায়ই কাজ করা যায়।
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
@@ -134,4 +134,9 @@ export default function Home() {
 
     </div>
   );
+}
+}
+ </div>
+  );
+}
 }

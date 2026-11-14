@@ -18,20 +18,27 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-size: 18px; /* Larger base — older-user friendly */
   }
   body {
     font-family: 'Hind Siliguri', 'Lexend', sans-serif;
     background-color: #f7f7f5;
     color: #141414;
+    line-height: 1.65;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Lexend', 'Hind Siliguri', sans-serif;
     font-weight: 800;
     letter-spacing: -0.03em;
     color: #141414;
+    line-height: 1.3;
   }
   .bn {
     font-family: 'Hind Siliguri', sans-serif;
+  }
+  /* Minimum 48px touch targets for all interactive elements */
+  button, a, [role="button"] {
+    min-height: 44px;
   }
 }
 
@@ -97,32 +104,34 @@
     padding: 1.25rem;
   }
 
-  /* ── Inputs ── */
+  /* ── Inputs — larger for older users ── */
   .input {
     width: 100%;
-    background: #f4f4f2;     /* grey fill, no border */
-    border: 1.5px solid transparent;
+    background: #f4f4f2;
+    border: 2px solid transparent;
     border-radius: 16px;
-    padding: 0.75rem 1rem;
+    padding: 0.9rem 1.25rem;
     color: #141414;
-    font-size: 0.9375rem;
+    font-size: 1.0625rem;   /* 17px at 16px base */
     font-family: 'Hind Siliguri', sans-serif;
     transition: border-color 150ms, background 150ms;
+    min-height: 54px;
   }
-  .input::placeholder { color: #9ca3a0; }
+  .input::placeholder { color: #8a9190; }
   .input:focus {
     outline: none;
     background: #fff;
     border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
   }
 
-  /* ── Labels ── */
+  /* ── Labels — larger and darker for older users ── */
   .label {
     display: block;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #6b7070;
-    margin-bottom: 0.4rem;
+    font-size: 0.9375rem;   /* 15px at 16px base */
+    font-weight: 700;
+    color: #374151;          /* much darker than before */
+    margin-bottom: 0.5rem;
     letter-spacing: 0.01em;
     font-family: 'Hind Siliguri', sans-serif;
   }

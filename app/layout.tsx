@@ -3,6 +3,7 @@ import { Lexend, Hind_Siliguri } from 'next/font/google';
 import './globals.css';
 import ConditionalNavbar from '@/components/ConditionalNavbar';
 import Footer from '@/components/Footer';
+import BottomNav from '@/components/BottomNav';
 
 const lexend = Lexend({ subsets: ['latin'], variable: '--font-lexend', display: 'swap' });
 const hind = Hind_Siliguri({
@@ -45,10 +46,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="bn" className={`${lexend.variable} ${hind.variable}`}>
       <body className="min-h-screen bg-gray-50 flex flex-col">
         <ConditionalNavbar />
-        <main className="flex-1 pt-16">
+        {/* pb-20 on mobile makes room for the bottom navigation bar */}
+        <main className="flex-1 pt-16 pb-20 sm:pb-0">
           {children}
         </main>
-        <Footer />
+        <div className="hidden sm:block">
+          <Footer />
+        </div>
+        <BottomNav />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </body>
     </html>
