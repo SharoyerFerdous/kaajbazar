@@ -29,7 +29,18 @@ export async function POST(
   }
 
   // Load the application — must belong to this provider and be a pending hire request
-  const appRow = await query(
+  const appRow = await query<{
+    id: string;
+    announcement_id: string;
+    provider_id: string;
+    proposed_price_bdt: number | null;
+    message: string;
+    status: string;
+    seeker_id: string;
+    title: string;
+    preferred_date: string | null;
+    ann_status: string;
+  }>(
     `SELECT ap.id, ap.announcement_id, ap.provider_id, ap.proposed_price_bdt, ap.message, ap.status,
             ann.seeker_id, ann.title, ann.preferred_date, ann.status AS ann_status
      FROM applications ap
@@ -136,7 +147,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'লগইন করুন' }, { status: 401 });
   }
 
-  const appRow = await query(
+  const appRow = await query<{
+    id: string;
+    provider_id: string;
+    message: string;
+    status: string;
+    announcement_id: string;
+  }>(
     `SELECT ap.id, ap.provider_id, ap.message, ap.status, ap.announcement_id
      FROM applications ap WHERE ap.id = $1`,
     [params.id]
