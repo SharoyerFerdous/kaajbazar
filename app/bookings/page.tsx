@@ -26,9 +26,11 @@ export default function BookingsPage() {
     cancelled: 'বাতিল', disputed: 'বিরোধ',
   };
   const statusClass: Record<string, string> = {
-    confirmed: 'badge-green', in_progress: 'badge-yellow',
-    completed: 'badge bg-gray-100 text-gray-600',
-    cancelled: 'badge-red', disputed: 'badge-red',
+    confirmed:   'badge badge-green',
+    in_progress: 'badge badge-yellow',
+    completed:   'badge bg-gray-100 text-gray-600',
+    cancelled:   'badge badge-red',
+    disputed:    'badge badge-red',
   };
 
   if (loading) return <div className="text-center py-16 text-gray-400 bn">লোড হচ্ছে...</div>;

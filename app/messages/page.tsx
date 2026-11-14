@@ -46,9 +46,6 @@ function MessagesInner() {
   const [viewerId, setViewerId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Guard: redirect to login if not authenticated
-    fetch('/api/auth/me').then(r => { if (!r.ok) router.push('/login'); });
-
     async function loadAll() {
       const [meRes, appRes, bcastRes, dmRes] = await Promise.all([
         fetch('/api/auth/me'),
@@ -56,6 +53,9 @@ function MessagesInner() {
         fetch('/api/broadcasts'),
         fetch('/api/dm'),
       ]);
+
+      // Guard: redirect to login if not authenticated (single /me call)
+      if (!meRes.ok) { router.push('/login'); return; }
 
       const all: Thread[] = [];
 
