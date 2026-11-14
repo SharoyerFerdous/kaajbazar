@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 const nav = [
   { href: '/admin',               icon: '📊', label: 'Overview' },
@@ -13,7 +13,26 @@ const nav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(async (r) => {
+      if (!r.ok) { router.replace('/login?next=/admin'); return; }
+      const d = await r.json();
+      if (d.user?.role !== 'ADMIN') { router.replace('/'); return; }
+      setAuthChecked(true);
+    }).catch(() => router.replace('/login?next=/admin'));
+  }, [router]);
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-gray-400 text-sm animate-pulse">Checking access...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
