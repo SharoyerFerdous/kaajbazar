@@ -155,6 +155,9 @@ async function _init() {
     // Add birth_year column to existing deployments (idempotent)
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_year SMALLINT`);
 
+    // Add skills column to existing deployments (idempotent)
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS skills TEXT[] DEFAULT '{}'`);
+
     // Safety & trust columns (idempotent)
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6)`);

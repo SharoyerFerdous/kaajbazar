@@ -54,9 +54,9 @@ export default function JobsPage() {
     setLoading(false);
   };
 
-  // On mount: load main feed + fetch recommended if user has skills
+  // On mount: fetch recommended jobs if user has skills
+  // (main feed is handled by the category useEffect below)
   useEffect(() => {
-    load(category, 1);
     (async () => {
       const meRes = await fetch('/api/auth/me');
       if (!meRes.ok) return;

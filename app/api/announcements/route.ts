@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     params.push(payload.id, limit, offset);
     const result = await query(
-      `SELECT a.*, sc.icon AS category_icon, sc.name_bn AS category_bn, u.name AS seeker_name,
+      `SELECT a.*, sc.icon AS category_icon, sc.name_bn AS category_bn, sc.slug AS category_slug, u.name AS seeker_name,
               (SELECT COUNT(*) FROM applications ap WHERE ap.announcement_id = a.id) AS application_count
        FROM announcements a
        JOIN service_categories sc ON sc.id = a.category_id
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
   params.push(limit, offset);
 
   const result = await query(
-    `SELECT a.*, sc.icon AS category_icon, sc.name_bn AS category_bn,
+    `SELECT a.*, sc.icon AS category_icon, sc.name_bn AS category_bn, sc.slug AS category_slug,
             (SELECT COUNT(*) FROM applications ap WHERE ap.announcement_id = a.id) AS application_count
      FROM announcements a
      JOIN service_categories sc ON sc.id = a.category_id

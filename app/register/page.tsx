@@ -86,7 +86,10 @@ function RegisterForm() {
               <div className="grid grid-cols-3 gap-2">
                 {ROLES.map((r) => (
                   <button key={r.value} type="button"
-                    onClick={() => setForm({ ...form, role: r.value })}
+                    onClick={() => {
+                      setForm({ ...form, role: r.value });
+                      if (r.value === 'SEEKER') setSkills([]);
+                    }}
                     className={`p-3 rounded-xl border-2 text-center transition text-sm bn
                       ${form.role === r.value
                         ? 'border-green-600 bg-green-50 text-green-700'
@@ -111,9 +114,9 @@ function RegisterForm() {
             </div>
 
             <div>
-              <label className="label">পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)</label>
+              <label className="label">পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)</label>
               <input className="input" placeholder="••••••••" type="password" value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+                onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
             </div>
 
             <div>
