@@ -232,8 +232,10 @@ function PostForm() {
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[1500] bg-white border-t border-gray-100 px-4 py-3 shadow-lg">
         <button onClick={() => document.querySelector('form')?.requestSubmit()} disabled={loading}
           className="w-full py-4 rounded-2xl font-black text-lg bn disabled:opacity-60"
-          style={{ background: '#1a2e1a', color: '#fff' }}>
-          {loading ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন →'}
+          style={{ background: loading ? '#9ca3af' : (isDirectHire ? '#16a34a' : '#1a2e1a'), color: '#fff' }}>
+          {loading
+            ? (isDirectHire ? 'Booking হচ্ছে...' : 'পোস্ট হচ্ছে...')
+            : (isDirectHire ? '✓ এখনই hire করুন' : 'পোস্ট করুন →')}
         </button>
       </div>
     </div>

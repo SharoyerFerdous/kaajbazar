@@ -16,15 +16,11 @@ export default function BottomNav() {
   const [me, setMe]       = useState<any>(null);
   const [unread, setUnread] = useState(0);
 
-  // Hide on admin pages
-  if (pathname?.startsWith('/admin')) return null;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Hooks must always run — early return must come AFTER all hooks
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => d && setMe(d.user));
   }, [pathname]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!me) return;
     const check = () =>
@@ -33,6 +29,9 @@ export default function BottomNav() {
     const t = setInterval(check, 15000);
     return () => clearInterval(t);
   }, [me]);
+
+  // Hide on admin pages — after all hooks
+  if (pathname?.startsWith('/admin')) return null;
 
   return (
     <nav
