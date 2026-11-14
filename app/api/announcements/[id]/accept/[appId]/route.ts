@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import pool from '@/lib/db';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { notifyBookingConfirmed } from '@/lib/notify';
 
@@ -34,20 +35,38 @@ export async function POST(
   let scheduled_date: string | undefined;
   try { ({ scheduled_date } = await req.json()); } catch { /* no body is fine */ }
 
-  // Transact: accept app, reject others, update announcement, create booking
-  await query('UPDATE applications SET status=$1 WHERE id=$2', ['accepted', params.appId]);
-  await query(
-    "UPDATE applications SET status='rejected' WHERE announcement_id=$1 AND id != $2",
-    [params.id, params.appId]
-  );
-  await query("UPDATE announcements SET status='matched' WHERE id=$1", [params.id]);
+  // Wrap all 4 writes in a transaction — if any step fails, everything rolls back
+  // so the announcement is never left in a corrupt half-accepted state.
+  const client = await pool.connect();
+  let booking: { rows: Booking[] };
+  try {
+    await client.query('BEGIN');
 
-  const booking = await query<Booking>(
-    `INSERT INTO bookings (announcement_id, application_id, provider_id, seeker_id, agreed_price_bdt, scheduled_date)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, scheduled_date`,
-    [params.id, params.appId, app.rows[0].provider_id, payload.id,
-     app.rows[0].proposed_price_bdt, scheduled_date || ann.rows[0].preferred_date]
-  );
+    // 1. Accept the chosen application
+    await client.query('UPDATE applications SET status=$1 WHERE id=$2', ['accepted', params.appId]);
+    // 2. Reject all other applications for this announcement
+    await client.query(
+      "UPDATE applications SET status='rejected' WHERE announcement_id=$1 AND id != $2",
+      [params.id, params.appId]
+    );
+    // 3. Close the announcement
+    await client.query("UPDATE announcements SET status='matched' WHERE id=$1", [params.id]);
+    // 4. Create the booking
+    const bookingResult = await client.query<Booking>(
+      `INSERT INTO bookings (announcement_id, application_id, provider_id, seeker_id, agreed_price_bdt, scheduled_date)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, scheduled_date`,
+      [params.id, params.appId, app.rows[0].provider_id, payload.id,
+       app.rows[0].proposed_price_bdt, scheduled_date || ann.rows[0].preferred_date]
+    );
+
+    await client.query('COMMIT');
+    booking = bookingResult;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return NextResponse.json({ error: 'Booking তৈরি করা যায়নি। আবার চেষ্টা করুন।' }, { status: 500 });
+  } finally {
+    client.release();
+  }
 
   // Reveal contact details (the "magic moment")
   const provider = await query<UserContact>('SELECT name, phone FROM users WHERE id=$1', [app.rows[0].provider_id]);

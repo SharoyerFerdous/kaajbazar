@@ -12,7 +12,7 @@ export default function BookingsPage() {
   useEffect(() => {
     async function load() {
       const meRes = await fetch('/api/auth/me');
-      if (!meRes.ok) { router.push('/login'); return; }
+      if (!meRes.ok) { setLoading(false); router.push('/login'); return; }
       setMe((await meRes.json()).user);
       const res = await fetch('/api/bookings/mine');
       if (res.ok) setBookings((await res.json()).bookings || []);

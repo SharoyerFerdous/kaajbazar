@@ -30,8 +30,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const apps = await query(
       `SELECT ap.id, ap.status, ap.proposed_price_bdt, ap.message,
               ap.provider_id, u.id AS provider_user_id,
-              pp.avg_rating AS provider_avg_rating, pp.completed_jobs, pp.headline,
-              u.name AS provider_name,
+              pp.avg_rating AS provider_avg_rating, pp.completed_jobs AS provider_completed_jobs, pp.headline,
+              u.name AS provider_name, u.avatar_url AS provider_avatar,
               CASE WHEN ap.status = 'accepted' THEN u.phone ELSE NULL END AS provider_phone
        FROM applications ap
        JOIN users u ON u.id = ap.provider_id

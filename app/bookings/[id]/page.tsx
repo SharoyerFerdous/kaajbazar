@@ -28,7 +28,7 @@ export default function BookingDetailPage() {
 
   async function load() {
     const meRes = await fetch('/api/auth/me');
-    if (!meRes.ok) { router.push('/login'); return; }
+    if (!meRes.ok) { setLoading(false); router.push('/login'); return; }
     setMe((await meRes.json()).user);
 
     const res = await fetch(`/api/bookings/${id}`);
@@ -48,8 +48,9 @@ export default function BookingDetailPage() {
       body: JSON.stringify({ status }),
     });
     if (res.ok) {
-      const d = await res.json();
-      setBooking(d.booking);
+      // Re-fetch the full enriched booking (status route returns a thin object
+      // without JOINs — using it directly would blank title, avatar, etc.)
+      await load();
     } else {
       const d = await res.json();
       setError(d.error || 'আপডেট করা যায়নি।');
@@ -132,7 +133,8 @@ export default function BookingDetailPage() {
       )}
 
       {/* ── Status action buttons ── */}
-      {st === 'confirmed' && (
+      {/* Provider starts the job */}
+      {st === 'confirmed' && isProvider && (
         <div className="card space-y-3">
           <p className="text-sm text-gray-500 bn">কাজ শুরু হলে নিচের বোতাম চাপুন:</p>
           <button onClick={() => updateStatus('in_progress')} disabled={updating}
@@ -142,13 +144,21 @@ export default function BookingDetailPage() {
         </div>
       )}
 
-      {st === 'in_progress' && (
+      {/* Seeker confirms the job is done */}
+      {st === 'in_progress' && isSeeker && (
         <div className="card space-y-3">
-          <p className="text-sm text-gray-500 bn">কাজ শেষ হলে নিচের বোতাম চাপুন:</p>
+          <p className="text-sm text-gray-500 bn">কাজ শেষ হয়ে থাকলে নিশ্চিত করুন:</p>
           <button onClick={() => updateStatus('completed')} disabled={updating}
             className="btn-green w-full text-center py-3 bn text-base">
             {updating ? 'আপডেট হচ্ছে...' : '✅ কাজ সম্পন্ন হয়েছে'}
           </button>
+        </div>
+      )}
+
+      {/* Provider sees a waiting message while job is in_progress */}
+      {st === 'in_progress' && isProvider && (
+        <div className="card bg-yellow-50 border border-yellow-200 text-center py-4">
+          <p className="text-sm text-yellow-800 font-semibold bn">কাজ চলছে — গ্রাহক সম্পন্ন নিশ্চিত করবেন।</p>
         </div>
       )}
 
