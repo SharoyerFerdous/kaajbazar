@@ -30,6 +30,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       [params.id, payload.id, proposed_price_bdt || null, message || null]
     );
 
+    const appId = result.rows[0].id;
+
+    // Seed the chat thread with the application message so it immediately
+    // appears in the Messages inbox for both parties.
+    if (message?.trim()) {
+      await query(
+        `INSERT INTO messages (application_id, sender_id, content)
+         VALUES ($1, $2, $3)`,
+        [appId, payload.id, message.trim()]
+      ).catch(() => {}); // non-fatal — chat seeding failure shouldn't break apply
+    }
+
     // Notify seeker (fire-and-forget)
     const seekerInfo = await query<{ phone: string }>(
       'SELECT phone FROM users WHERE id = $1',

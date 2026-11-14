@@ -6,7 +6,7 @@ import { sendWhatsApp } from './channels/whatsapp';
 import { postToFacebookPage } from './channels/facebook';
 import { query } from './db';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kaaj-sigma.vercel.app';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kaajbazar-theta.vercel.app';
 
 // ─── Event: new job posted ──────────────────────────────────────────────────
 // Dispatch to all available providers in same district (Uber pattern)

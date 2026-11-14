@@ -215,11 +215,9 @@ function MessagesInner() {
                       <span className="text-xs text-gray-400 shrink-0 bn">{timeAgo(t.lastAt)}</span>
                     </div>
                     <div className="text-xs text-gray-400 bn truncate mt-0.5">{t.subtitle}</div>
-                    {t.lastMessage && (
-                      <div className={`text-xs mt-0.5 truncate ${t.unread > 0 ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                        {t.lastMessage}
-                      </div>
-                    )}
+                    <div className={`text-xs mt-0.5 truncate ${t.unread > 0 ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
+                      {t.lastMessage || (t.kind === 'application' ? '📝 Apply করেছে' : '')}
+                    </div>
                   </div>
 
                   {/* Unread badge */}
