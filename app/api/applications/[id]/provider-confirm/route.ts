@@ -102,12 +102,12 @@ export async function POST(
   }
 
   // Notify both parties (fire-and-forget)
-  const people = await query(
+  const people = await query<{ id: string; name: string; phone: string }>(
     'SELECT id, name, phone FROM users WHERE id = ANY($1)',
     [[app.provider_id, app.seeker_id]]
   );
-  const provider = people.rows.find((u: any) => u.id === app.provider_id);
-  const seeker   = people.rows.find((u: any) => u.id === app.seeker_id);
+  const provider = people.rows.find((u) => u.id === app.provider_id);
+  const seeker   = people.rows.find((u) => u.id === app.seeker_id);
   if (provider && seeker) {
     notifyBookingConfirmed({
       providerPhone: provider.phone,
