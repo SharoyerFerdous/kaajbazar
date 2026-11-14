@@ -14,11 +14,12 @@ interface Props {
   appId: string;
   title?: string;
   otherName?: string;
-  compact?: boolean; // collapsible panel mode
-  apiBase?: string;  // defaults to '/api/messages' — pass '/api/dm' for direct chats
+  compact?: boolean;    // collapsible panel mode
+  hideHeader?: boolean; // suppress the green header (when the parent already renders one)
+  apiBase?: string;     // defaults to '/api/messages' — pass '/api/dm' for direct chats
 }
 
-export default function ChatWindow({ appId, title, otherName, compact = false, apiBase = '/api/messages' }: Props) {
+export default function ChatWindow({ appId, title, otherName, compact = false, hideHeader = false, apiBase = '/api/messages' }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [metaTitle, setMetaTitle] = useState<string | null>(null); // title from API meta
@@ -151,17 +152,19 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
 
   return (
     <div className="card p-0 overflow-hidden">
-      <div className="bg-green-700 px-4 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-          💬
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-white font-semibold text-sm bn truncate">
-            {displayOther} এর সাথে চ্যাট
+      {!hideHeader && (
+        <div className="bg-green-700 px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            💬
           </div>
-          {displayTitle && <div className="text-green-300 text-xs bn truncate">{displayTitle}</div>}
+          <div className="flex-1 min-w-0">
+            <div className="text-white font-semibold text-sm bn truncate">
+              {displayOther} এর সাথে চ্যাট
+            </div>
+            {displayTitle && <div className="text-green-300 text-xs bn truncate">{displayTitle}</div>}
+          </div>
         </div>
-      </div>
+      )}
       <ChatBody msgs={msgs} viewerId={viewerId} input={input} setInput={setInput}
         sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading}
         fetchError={fetchError} />

@@ -306,12 +306,14 @@ function MessagesInner() {
             appId={active.id}
             apiBase="/api/dm"
             otherName={active.label}
+            hideHeader
           />
         ) : (
           <ChatWindow
             appId={active.id}
             title={active.subtitle}
             otherName={active.label}
+            hideHeader
           />
         )}
       </div>

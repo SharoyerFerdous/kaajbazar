@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: { appId: strin
 
   // Verify requester is seeker or provider on this application
   const appRow = await query<{ seeker_id: string; provider_id: string; title: string }>(
-    `SELECT a.seeker_id, a.provider_id, ann.title
+    `SELECT ann.seeker_id, a.provider_id, ann.title
      FROM applications a
      JOIN announcements ann ON ann.id = a.announcement_id
      WHERE a.id = $1`,
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { appId: stri
   if (!viewer) return NextResponse.json({ error: 'লগইন করুন' }, { status: 401 });
 
   const appRow = await query<{ seeker_id: string; provider_id: string }>(
-    `SELECT a.seeker_id, a.provider_id FROM applications a WHERE a.id = $1`,
+    `SELECT ann.seeker_id, a.provider_id FROM applications a JOIN announcements ann ON ann.id = a.announcement_id WHERE a.id = $1`,
     [params.appId]
   );
   if (!appRow.rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 });
