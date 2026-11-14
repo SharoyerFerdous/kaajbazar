@@ -25,8 +25,16 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(!compact);
   const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Reset when the conversation changes ────────────────────────────────────
+  useEffect(() => {
+    setMsgs([]);
+    setLoading(true);
+    setViewerId(null);
+  }, [appId]);
 
   const fetchMsgs = useCallback(async () => {
     try {
@@ -35,6 +43,7 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
       const d = await r.json();
       setMsgs(d.messages || []);
       setViewerId(d.meta?.viewer_id || null);
+      setLoading(false);
       // Count unread when panel is closed
       if (!open) {
         const unreadCount = (d.messages || []).filter(
@@ -109,7 +118,7 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
           <span>{open ? '▼' : '▲'}</span>
         </button>
         {open && <ChatBody msgs={msgs} viewerId={viewerId} input={input} setInput={setInput}
-          sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} />}
+          sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading} />}
       </div>
     );
   }
@@ -126,15 +135,14 @@ export default function ChatWindow({ appId, title, otherName, compact = false, a
           </div>
           {title && <div className="text-green-300 text-xs bn truncate">{title}</div>}
         </div>
-        <span className="text-green-300 text-xs">● live</span>
       </div>
       <ChatBody msgs={msgs} viewerId={viewerId} input={input} setInput={setInput}
-        sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} />
+        sending={sending} send={send} fmt={fmt} bottomRef={bottomRef} loading={loading} />
     </div>
   );
 }
 
-function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomRef }: {
+function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomRef, loading }: {
   msgs: Msg[];
   viewerId: string | null;
   input: string;
@@ -143,16 +151,21 @@ function ChatBody({ msgs, viewerId, input, setInput, sending, send, fmt, bottomR
   send: (e: FormEvent) => void;
   fmt: (iso: string) => string;
   bottomRef: React.RefObject<HTMLDivElement>;
+  loading?: boolean;
 }) {
   return (
-    <div className="bg-white flex flex-col" style={{ height: '380px' }}>
+    <div className="bg-white flex flex-col" style={{ height: '420px' }}>
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-        {msgs.length === 0 && (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-gray-300 text-2xl animate-pulse">💬</div>
+          </div>
+        ) : msgs.length === 0 ? (
           <p className="text-center text-gray-400 text-xs bn mt-8">
             এখনো কোনো বার্তা নেই। প্রথম বার্তা পাঠান!
           </p>
-        )}
+        ) : null}
         {msgs.map((m) => {
           const mine = m.sender_id === viewerId;
           return (

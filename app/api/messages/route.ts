@@ -30,12 +30,11 @@ export async function GET(req: NextRequest) {
        su.name AS seeker_name,
        pu.name AS provider_name,
        -- Last message: prefer actual chat message, fall back to the
-       -- application pitch, then a generic label. This ensures every
-       -- application shows up in the inbox even before chatting starts.
+       -- application pitch (skipping internal markers), then a generic label.
        COALESCE(
          (SELECT content FROM messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1),
-         a.message,
-         'Apply করেছে'
+         CASE WHEN a.message IS NOT NULL AND a.message != '||hire_request||' THEN a.message ELSE NULL END,
+         CASE WHEN a.message = '||hire_request||' THEN '🤝 সরাসরি hire অনুরোধ' ELSE 'Apply করেছে' END
        ) AS last_message,
        -- Timestamp: prefer last chat message, fall back to application created_at
        COALESCE(

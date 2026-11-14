@@ -214,9 +214,15 @@ function MessagesInner() {
                       <span className="font-semibold text-gray-900 bn text-sm truncate">{t.label}</span>
                       <span className="text-xs text-gray-400 shrink-0 bn">{timeAgo(t.lastAt)}</span>
                     </div>
-                    <div className="text-xs text-gray-400 bn truncate mt-0.5">{t.subtitle}</div>
+                    {/* Announcement topic — only show for application threads */}
+                    {t.kind === 'application' && t.subtitle && (
+                      <div className="text-xs text-green-700 bn truncate mt-0.5 font-medium">
+                        📋 {t.subtitle}
+                      </div>
+                    )}
+                    {/* Last message preview */}
                     <div className={`text-xs mt-0.5 truncate ${t.unread > 0 ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                      {t.lastMessage || (t.kind === 'application' ? '📝 Apply করেছে' : '')}
+                      {t.lastMessage || (t.kind === 'application' ? '📝 Apply করেছে' : t.subtitle || '')}
                     </div>
                   </div>
 
