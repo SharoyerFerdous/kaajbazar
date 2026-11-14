@@ -109,9 +109,9 @@ export default function ProviderPage() {
       {/* CTA */}
       {me && me.id !== provider.user_id ? (
         <div className="flex gap-3 mb-5">
-          <Link href={`/post?provider=${params.id}`}
-            className="flex-1 text-center py-3 rounded-2xl bg-gray-950 text-white font-bold text-sm bn hover:bg-gray-800 transition-colors">
-            এই সহায়তাকারীকে hire করুন
+          <Link href={`/post?provider=${provider.user_id}&providerName=${encodeURIComponent(provider.name || '')}`}
+            className="flex-1 text-center py-3 rounded-2xl bg-green-600 text-white font-bold text-sm bn hover:bg-green-700 transition-colors">
+            ✓ সরাসরি hire করুন
           </Link>
           <button
             onClick={startDM}

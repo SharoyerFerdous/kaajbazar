@@ -23,6 +23,10 @@ function PostForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultCat = searchParams.get('category') || '';
+  // When coming from a provider profile, hire them directly
+  const providerUserId = searchParams.get('provider') || '';
+  const providerName   = searchParams.get('providerName') || '';
+  const isDirectHire   = !!providerUserId;
 
   const [category_slug, setCategory] = useState(defaultCat);
   const [description, setDescription] = useState('');
@@ -39,7 +43,7 @@ function PostForm() {
     if (!description.trim()) { setError('বিস্তারিত লিখুন।'); return; }
     setError(''); setLoading(true);
     try {
-      // Parse budget "min-max" or single number
+      // Parse budget — single number or "min-max"
       let budget_min: number | null = null, budget_max: number | null = null;
       if (budget) {
         const parts = budget.replace(/[৳,]/g, '').split(/[-–]/);
@@ -47,8 +51,32 @@ function PostForm() {
         budget_max = parts[1] ? Number(parts[1]) : budget_min;
       }
       const preferred_date = when === 'date' ? customDate || null : null;
-      const flexible_date  = when === 'flexible';
-      // Use description as title (first 80 chars) + full description
+
+      // ── Direct hire: skip job board, create booking immediately ──────────
+      if (isDirectHire) {
+        const res = await fetch('/api/direct-hire', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider_user_id: providerUserId,
+            category_slug,
+            description,
+            budget_bdt: budget_min,
+            location_thana,
+            scheduled_date: preferred_date,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 401) { router.push('/login'); return; }
+          setError(data.error || 'কোনো সমস্যা হয়েছে।');
+          return;
+        }
+        router.push(`/bookings/${data.booking.id}`);
+        return;
+      }
+
+      // ── Normal post: open job board announcement ──────────────────────────
       const title = description.trim().slice(0, 80);
       const res = await fetch('/api/announcements', {
         method: 'POST',
@@ -57,7 +85,7 @@ function PostForm() {
           category_slug, title, description,
           location_district: location_thana ? 'রাজশাহী' : '', location_thana,
           budget_min_bdt: budget_min, budget_max_bdt: budget_max,
-          preferred_date, flexible_date,
+          preferred_date, flexible_date: when === 'flexible',
         }),
       });
       const data = await res.json();
@@ -78,8 +106,23 @@ function PostForm() {
     <div className="max-w-lg mx-auto px-4 py-8 pb-24 sm:pb-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black bn text-gray-950">আপনার কাজ পোস্ট করুন 📋</h1>
-        <p className="text-sm text-gray-400 bn mt-1">কাছের মানুষ সাহায্য করবে — বিনামূল্যে পোস্ট করুন</p>
+        {isDirectHire ? (
+          <>
+            <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full text-sm font-semibold bn"
+              style={{ background: '#dcfce7', color: '#15803d' }}>
+              ✓ সরাসরি hire
+            </div>
+            <h1 className="text-2xl font-black bn text-gray-950">
+              {providerName ? `${providerName}-কে hire করুন` : 'সরাসরি hire করুন'}
+            </h1>
+            <p className="text-sm text-gray-400 bn mt-1">কাজের বিবরণ দিন — সাথে সাথে booking তৈরি হবে।</p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-black bn text-gray-950">আপনার কাজ পোস্ট করুন 📋</h1>
+            <p className="text-sm text-gray-400 bn mt-1">কাছের মানুষ সাহায্য করবে — বিনামূল্যে পোস্ট করুন</p>
+          </>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -176,8 +219,10 @@ function PostForm() {
         {/* Big post button */}
         <button type="submit" disabled={loading}
           className="w-full py-4 rounded-2xl font-black text-lg bn transition-colors disabled:opacity-60"
-          style={{ background: loading ? '#9ca3af' : '#1a2e1a', color: '#fff' }}>
-          {loading ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন →'}
+          style={{ background: loading ? '#9ca3af' : (isDirectHire ? '#16a34a' : '#1a2e1a'), color: '#fff' }}>
+          {loading
+            ? (isDirectHire ? 'Booking হচ্ছে...' : 'পোস্ট হচ্ছে...')
+            : (isDirectHire ? '✓ এখনই hire করুন' : 'পোস্ট করুন →')}
         </button>
       </form>
 
