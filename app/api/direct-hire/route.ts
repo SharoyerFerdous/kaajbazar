@@ -88,18 +88,19 @@ export async function POST(req: NextRequest) {
   const title = description.trim().slice(0, 80);
   const budget_min = budget_bdt ? Number(budget_bdt) : null;
 
-  // Single transaction: announcement → application → booking
+  // Single transaction: announcement (open) → application (pending, hire_request)
+  // No booking yet — provider must confirm before booking is created.
   const client = await pool.connect();
-  let bookingId: string;
+  let announcementId: string;
   try {
     await client.query('BEGIN');
 
-    // 1. Create announcement (already matched — not open to other providers)
+    // 1. Create announcement — stays 'open' until provider confirms
     const annResult = await client.query<{ id: string }>(
       `INSERT INTO announcements
          (seeker_id, category_id, title, description, location_district, location_thana,
           budget_min_bdt, budget_max_bdt, preferred_date, flexible_date, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'matched') RETURNING id`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'open') RETURNING id`,
       [
         payload.id, category_id, title, description.trim(),
         location_thana ? 'রাজশাহী' : '', location_thana || null,
@@ -107,48 +108,35 @@ export async function POST(req: NextRequest) {
         scheduled_date || null, !scheduled_date,
       ]
     );
-    const announcementId = annResult.rows[0].id;
+    announcementId = annResult.rows[0].id;
 
-    // 2. Create application (auto-accepted — seeker initiated this hire)
-    const appResult = await client.query<{ id: string }>(
+    // 2. Create a PENDING application on behalf of the provider.
+    //    The '||hire_request||' marker in message lets the UI show
+    //    "Accept / Decline" buttons to the provider instead of the
+    //    normal "waiting for customer" message.
+    await client.query(
       `INSERT INTO applications
          (announcement_id, provider_id, proposed_price_bdt, message, status)
-       VALUES ($1,$2,$3,$4,'accepted') RETURNING id`,
-      [announcementId, provider_user_id, budget_min, 'সরাসরি hire']
+       VALUES ($1,$2,$3,$4,'pending')`,
+      [announcementId, provider_user_id, budget_min, '||hire_request||']
     );
-    const applicationId = appResult.rows[0].id;
-
-    // 3. Create booking
-    const bookingResult = await client.query<{ id: string }>(
-      `INSERT INTO bookings
-         (announcement_id, application_id, provider_id, seeker_id, agreed_price_bdt, scheduled_date, status)
-       VALUES ($1,$2,$3,$4,$5,$6,'confirmed') RETURNING id`,
-      [announcementId, applicationId, provider_user_id, payload.id, budget_min, scheduled_date || null]
-    );
-    bookingId = bookingResult.rows[0].id;
 
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[direct-hire] transaction failed:', err);
-    return NextResponse.json({ error: 'Booking তৈরি করা যায়নি। আবার চেষ্টা করুন।' }, { status: 500 });
+    return NextResponse.json({ error: 'অনুরোধ পাঠানো যায়নি। আবার চেষ্টা করুন।' }, { status: 500 });
   } finally {
     client.release();
   }
 
-  // Fire-and-forget notification
+  // Notify provider that they've received a hire request
   const p = providerUser.rows[0];
   const s = seekerRow.rows[0];
-  if (p && s) {
-    notifyBookingConfirmed({
-      providerPhone: p.phone,
-      providerName: p.name,
-      seekerPhone: s.phone,
-      seekerName: s.name,
-      announcementTitle: title,
-      scheduledDate: scheduled_date || null,
-    }).catch(() => {});
+  if (p?.phone && s?.name) {
+    // Re-use the notify infrastructure (fire-and-forget)
+    // notifyHireRequest is not yet built — fall through silently for now.
   }
 
-  return NextResponse.json({ booking: { id: bookingId } }, { status: 201 });
+  return NextResponse.json({ announcement: { id: announcementId } }, { status: 201 });
 }

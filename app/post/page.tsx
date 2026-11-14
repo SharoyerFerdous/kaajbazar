@@ -72,7 +72,9 @@ function PostForm() {
           setError(data.error || 'কোনো সমস্যা হয়েছে।');
           return;
         }
-        router.push(`/bookings/${data.booking.id}`);
+        // Direct hire creates a pending request — provider must confirm.
+        // Redirect to the announcement so the seeker sees "waiting for provider".
+        router.push(`/announcements/${data.announcement.id}`);
         return;
       }
 

@@ -255,6 +255,13 @@ export default function AnnouncementPage() {
               <div className="text-3xl mb-2">📭</div>
               এখনো কেউ apply করেনি
             </div>
+          ) : applications.every((a: any) => a.message === '||hire_request||' && a.status === 'pending') ? (
+            // All applications are direct-hire requests waiting for provider
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center">
+              <div className="text-3xl mb-2">⏳</div>
+              <div className="font-black text-gray-900 bn">অপেক্ষায় আছেন...</div>
+              <div className="text-sm text-gray-500 bn mt-1">সহায়তাকারী আপনার hire অনুরোধ দেখলে সাথে সাথে জানাবেন।</div>
+            </div>
           ) : (
             <>
               <p className="text-sm text-gray-500 bn mb-3 font-semibold">
@@ -331,21 +338,64 @@ export default function AnnouncementPage() {
         </div>
       )}
 
-      {/* ── PROVIDER: already applied ── */}
-      {!isSeeker && alreadyApplied && (
-        <div className="mb-5 space-y-3">
-          <div className={`rounded-2xl px-4 py-3 text-sm bn font-semibold ${
-            myApp.status === 'accepted'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-blue-50 text-blue-700 border border-blue-200'
-          }`}>
-            {myApp.status === 'accepted'
-              ? '🎉 আপনি নির্বাচিত হয়েছেন!'
-              : 'Application পাঠানো হয়েছে — গ্রাহকের সিদ্ধান্তের অপেক্ষায়'}
+      {/* ── PROVIDER: already applied or received a hire request ── */}
+      {!isSeeker && alreadyApplied && (() => {
+        const isHireRequest = myApp.message === '||hire_request||';
+        if (isHireRequest && myApp.status === 'pending') {
+          // Seeker directly hired this provider — show Accept / Decline
+          return (
+            <div className="mb-5 space-y-3">
+              <div className="rounded-2xl p-4 bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="text-2xl">🤝</span>
+                  <div>
+                    <div className="font-black text-gray-900 bn text-base">সরাসরি hire অনুরোধ</div>
+                    <div className="text-sm text-gray-500 bn mt-0.5">একজন গ্রাহক আপনাকে সরাসরি hire করতে চান।</div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      setErr('');
+                      const res = await fetch(`/api/applications/${myApp.id}/provider-confirm`, { method: 'POST' });
+                      const d = await res.json();
+                      if (res.ok) window.location.href = `/bookings/${d.booking.id}`;
+                      else setErr(d.error || 'সমস্যা হয়েছে।');
+                    }}
+                    className="flex-1 py-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black text-sm bn transition-colors">
+                    ✓ Accept করুন
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('সত্যিই decline করবেন?')) return;
+                      const res = await fetch(`/api/applications/${myApp.id}/provider-confirm`, { method: 'DELETE' });
+                      if (res.ok) window.location.reload();
+                      else { const d = await res.json(); setErr(d.error || 'সমস্যা হয়েছে।'); }
+                    }}
+                    className="px-5 py-3 rounded-2xl border-2 border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm bn transition-colors">
+                    Decline
+                  </button>
+                </div>
+              </div>
+              <ChatWindow appId={myApp.id} title={ann.title} otherName="গ্রাহক" />
+            </div>
+          );
+        }
+        return (
+          <div className="mb-5 space-y-3">
+            <div className={`rounded-2xl px-4 py-3 text-sm bn font-semibold ${
+              myApp.status === 'accepted'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-blue-50 text-blue-700 border border-blue-200'
+            }`}>
+              {myApp.status === 'accepted'
+                ? '🎉 আপনি নির্বাচিত হয়েছেন!'
+                : 'Application পাঠানো হয়েছে — গ্রাহকের সিদ্ধান্তের অপেক্ষায়'}
+            </div>
+            <ChatWindow appId={myApp.id} title={ann.title} otherName="গ্রাহক" />
           </div>
-          <ChatWindow appId={myApp.id} title={ann.title} otherName="গ্রাহক" />
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── PROVIDER: apply form ── */}
       {!isSeeker && me && ann.status === 'open' && !alreadyApplied && (
